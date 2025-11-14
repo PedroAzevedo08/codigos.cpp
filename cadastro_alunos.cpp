@@ -2,6 +2,7 @@
 #include <string>
 using namespace std;
 
+
 void limparTela() { system("clear || cls"); }
 void pausar() { cout << "\nPressione ENTER..."; cin.ignore(); cin.get(); }
 
