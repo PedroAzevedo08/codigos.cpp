@@ -7,68 +7,99 @@ void pausar() { cout << "\nPressione ENTER..."; cin.ignore(); cin.get(); }
 
 class Alunos {
 public:
-    int matriculas[100];
-    string nomes[100];
-    int totalAlunos = 0;
-    int proximaMatricula = 1;
+
+    class NoAluno {
+    public:
+        int matricula;
+        string nome;
+        NoAluno *prox;
+    };
+
+    NoAluno *inicio = NULL;
+    int proxMatricula = 1;
 
     void inserir() {
         string nome;
         cout << "Nome do aluno: ";
         getline(cin, nome);
 
-        matriculas[totalAlunos] = proximaMatricula++;
-        nomes[totalAlunos] = nome;
-        totalAlunos++;
+        NoAluno *novo = new NoAluno();
+        novo->matricula = proxMatricula++;
+        novo->nome = nome;
+        novo->prox = NULL;
 
-        cout << "Aluno cadastrado! Matrícula: "
-             << matriculas[totalAlunos - 1] << endl;
+        if (inicio == NULL)
+            inicio = novo;
+        else {
+            NoAluno *aux = inicio;
+            while (aux->prox != NULL)
+                aux = aux->prox;
+            aux->prox = novo;
+        }
+
+        cout << "Aluno cadastrado! Matrícula: " << novo->matricula << endl;
     }
 
     void exibir() {
         cout << "\n=== ALUNOS CADASTRADOS ===\n";
-        for (int i = 0; i < totalAlunos; i++) {
-            cout << "Matricula: " << matriculas[i]
-                 << " | Nome: " << nomes[i] << endl;
+        NoAluno *aux = inicio;
+        while (aux != NULL) {
+            cout << "Matricula: " << aux->matricula 
+                 << " | Nome: " << aux->nome << endl;
+            aux = aux->prox;
         }
     }
 
     int pesquisar(string nome) {
-        for (int i = 0; i < totalAlunos; i++) {
-            if (nomes[i] == nome)
-                return matriculas[i];
+        NoAluno *aux = inicio;
+        while (aux != NULL) {
+            if (aux->nome == nome)
+                return aux->matricula;
+            aux = aux->prox;
         }
         return -1;
     }
 
     bool remover(string nome, bool temNotas) {
         if (temNotas) {
-            cout << "ERRO: este aluno possui notas.\n";
+            cout << "ERRO: aluno possui notas.\n";
             return false;
         }
 
-        for (int i = 0; i < totalAlunos; i++) {
-            if (nomes[i] == nome) {
-                for (int j = i; j < totalAlunos - 1; j++) {
-                    matriculas[j] = matriculas[j + 1];
-                    nomes[j] = nomes[j + 1];
-                }
-                totalAlunos--;
+        NoAluno *aux = inicio;
+        NoAluno *ant = NULL;
+
+        while (aux != NULL) {
+            if (aux->nome == nome) {
+                if (ant == NULL)
+                    inicio = aux->prox;
+                else
+                    ant->prox = aux->prox;
+                delete aux;
                 cout << "Aluno removido.\n";
                 return true;
             }
+            ant = aux;
+            aux = aux->prox;
         }
 
-        cout << "Aluno nao encontrado.\n";
+        cout << "Aluno não encontrado.\n";
         return false;
     }
 };
 
+
 class Notas {
 public:
-    int matriculaNota[200];
-    float valorNota[200];
-    int totalNotas = 0;
+
+    class NoNota {
+    public:
+        int matricula;
+        float valor;
+        NoNota *prox;
+    };
+
+    NoNota *inicio = NULL;
 
     void inserir(int matricula) {
         if (matricula == -1) {
@@ -81,45 +112,46 @@ public:
         cin >> nota;
         cin.ignore();
 
-        int pos = 0;
+        NoNota *nova = new NoNota();
+        nova->matricula = matricula;
+        nova->valor = nota;
+        nova->prox = NULL;
 
-        while (pos < totalNotas && matriculaNota[pos] < matricula)
-            pos++;
+        if (inicio == NULL || inicio->matricula > matricula) {
+            nova->prox = inicio;
+            inicio = nova;
+            cout << "Nota registrada!\n";
+            return;
+        }
 
-        if (pos < totalNotas && matriculaNota[pos] == matricula) {
-            int inicio = pos;
-            while (pos < totalNotas && matriculaNota[pos] == matricula)
-                pos++;
+        NoNota *aux = inicio;
+        while (aux->prox != NULL && aux->prox->matricula < matricula)
+            aux = aux->prox;
 
-            for (int i = totalNotas; i > inicio; i--) {
-                matriculaNota[i] = matriculaNota[i - 1];
-                valorNota[i] = valorNota[i - 1];
-            }
+        if (aux->prox != NULL && aux->prox->matricula == matricula) {
 
-            matriculaNota[inicio] = matricula;
-            valorNota[inicio] = nota;
-            totalNotas++;
+            NoNota *pilhaTopo = aux->prox;
+
+            nova->prox = pilhaTopo;
+            aux->prox = nova;
 
             cout << "Nota registrada!\n";
             return;
         }
 
-        for (int i = totalNotas; i > pos; i--) {
-            matriculaNota[i] = matriculaNota[i - 1];
-            valorNota[i] = valorNota[i - 1];
-        }
-
-        matriculaNota[pos] = matricula;
-        valorNota[pos] = nota;
-        totalNotas++;
+        nova->prox = aux->prox;
+        aux->prox = nova;
 
         cout << "Nota registrada!\n";
     }
 
     bool temNotas(int matricula) {
-        for (int i = 0; i < totalNotas; i++)
-            if (matriculaNota[i] == matricula)
+        NoNota *aux = inicio;
+        while (aux != NULL) {
+            if (aux->matricula == matricula)
                 return true;
+            aux = aux->prox;
+        }
         return false;
     }
 
@@ -129,36 +161,45 @@ public:
             return;
         }
 
-        bool encontrou = false;
         cout << "\n=== NOTAS DO ALUNO ===\n";
+        NoNota *aux = inicio;
+        bool achou = false;
 
-        for (int i = 0; i < totalNotas; i++) {
-            if (matriculaNota[i] == matricula) {
-                cout << "Nota: " << valorNota[i] << endl;
-                encontrou = true;
+        while (aux != NULL) {
+            if (aux->matricula == matricula) {
+                cout << "Nota: " << aux->valor << endl;
+                achou = true;
             }
+            aux = aux->prox;
         }
 
-        if (!encontrou)
+        if (!achou)
             cout << "Sem notas.\n";
     }
 
     void removerNota(int matricula) {
-        for (int i = totalNotas - 1; i >= 0; i--) {
-            if (matriculaNota[i] == matricula) {
-                for (int j = i; j < totalNotas - 1; j++) {
-                    matriculaNota[j] = matriculaNota[j + 1];
-                    valorNota[j] = valorNota[j + 1];
-                }
-                totalNotas--;
+        NoNota *aux = inicio;
+        NoNota *ant = NULL;
+
+        while (aux != NULL) {
+            if (aux->matricula == matricula) {
+                if (ant == NULL)
+                    inicio = aux->prox;
+                else
+                    ant->prox = aux->prox;
+
+                delete aux;
                 cout << "Nota mais recente removida.\n";
                 return;
             }
+            ant = aux;
+            aux = aux->prox;
         }
 
-        cout << "Nao ha notas para excluir.\n";
+        cout << "Nao ha notas.\n";
     }
 };
+
 
 int main() {
     Alunos alunos;
